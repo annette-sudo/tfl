@@ -83,3 +83,40 @@ $$aaa \leftrightarrow aaaa$$
 ### Построение ДКА
 Для наглядности построим ДКА по данным классам эквивалентности.
 ![ДКА](images/automa.svg)
+
+### Построение минимальной системы переписывания
+Воспользовавашись опытом прошлых цивилизаций, а точнее работой ["Построение трансформационного моноида по автомату (А.Иванов)](https://github.com/UsefulTornado/Formal-Languages), мы получили минимальную систему переписывания:
+
+$$
+bba \rightarrow bab \\
+$$
+$$
+aaaa \rightarrow aaa \\
+$$
+$$
+aaab \rightarrow aaa \\
+$$
+$$
+abaa \rightarrow aaa \\
+$$
+$$
+abab \rightarrow aaa \\
+$$
+$$
+baaa \rightarrow aaa \\
+$$
+$$
+baba \rightarrow baab \\
+$$
+$$
+bbbb \rightarrow ba \\
+$$
+$$
+baaba \rightarrow aaa \\
+$$
+$$
+baabb \rightarrow aaa \\
+$$
+$$
+babbb \rightarrow baa \\
+$$
