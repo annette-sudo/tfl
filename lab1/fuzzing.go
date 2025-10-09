@@ -9,9 +9,9 @@ import (
 var Alphabet = []rune{'a', 'b'}
 
 var T = []RewritingRule{
-	{left: "abbaba", right: "aabbbaa"},
-	{left: "aaa", right: "abab"},
-	{left: "abba", right: "baaab"},
+	{left: "aabbbaa", right: "abbaba"},
+	{left: "abab", right: "aaa"},
+	{left: "baaab", right: "abba"},
 	{left: "bbbb", right: "ba"},
 }
 
@@ -30,19 +30,62 @@ var T_1 = []RewritingRule{
 }
 
 const maxWordLen = 10
-const maxSteps = 100
+const maxSteps = 20
 
 type RewritingRule struct {
 	left, right string
 }
 
-func ReplaceN(str, s, t string, n int) string {
-	index := 0
-	for i := 0; i < n-1; i++ {
-		index += strings.Index(str[index:], s) + len(s)
+type Vertex struct {
+	word   string
+	parent *Vertex
+	way    []string
+}
+
+type Queue struct {
+	data                        []*Vertex
+	capacity, count, head, tail int
+}
+
+func InitQueue() *Queue {
+	var q Queue
+	q.data = make([]*Vertex, 0)
+	q.capacity = 0
+	q.count = 0
+	q.head = 0
+	q.tail = 0
+	return &q
+}
+
+func (p *Queue) Enqueue(x *Vertex) {
+	p.data = append(p.data, x)
+	p.tail++
+	p.count++
+	p.capacity++
+}
+
+func (p *Queue) Dequeue() *Vertex {
+	x := p.data[p.head]
+	p.head++
+	p.count--
+	return x
+}
+
+func CountAllEntry(str, s string) []int {
+	var indexList []int
+	for i := 0; i < len(str)-len(s)+1; i++ {
+		relIndex := strings.HasPrefix(str[i:], s)
+		if !relIndex {
+			continue
+		} else {
+			indexList = append(indexList, i)
+		}
 	}
-	index += strings.Index(str[index:], s)
-	return str[:index] + strings.Replace(str[index:], s, t, 1)
+	return indexList
+}
+
+func ReplaceFromIndex(word, left, right string, index int) string {
+	return word[:index] + strings.Replace(word[index:], left, right, 1)
 }
 
 func GenerateWords() string {
@@ -56,18 +99,19 @@ func GenerateWords() string {
 
 func GenerateChain(word string, srs []RewritingRule) ([]string, string) {
 	var chain []string
+	steps := rand.Intn(maxSteps)
 	currentWord := word
 	chain = append(chain, currentWord)
 
-	for step := 0; step < maxSteps; step++ {
+	for range steps {
 		orderRules := rand.Perm(len(srs))
-
 		applied := false
+
 		for _, k := range orderRules {
-			entryCount := strings.Count(currentWord, srs[k].left)
-			if entryCount != 0 {
-				changes := rand.Intn(entryCount)
-				currentWord = ReplaceN(currentWord, srs[k].left, srs[k].right, changes)
+			indexCount := CountAllEntry(currentWord, srs[k].left)
+			if len(indexCount) != 0 {
+				changes := indexCount[rand.Intn(len(indexCount))]
+				currentWord = ReplaceFromIndex(currentWord, srs[k].left, srs[k].right, changes)
 				chain = append(chain, currentWord)
 				applied = true
 				break
@@ -79,6 +123,74 @@ func GenerateChain(word string, srs []RewritingRule) ([]string, string) {
 	}
 
 	return chain, currentWord
+}
+
+func WordToWord(word, word_1 string, srs_1 []RewritingRule) {
+	if word == word_1 {
+		fmt.Printf("«%s» and «%s» are equal.\n", word, word_1)
+	} else if len(word) > len(word_1) {
+		chain, _ := BuildTreeBFS(word, word_1, srs_1)
+		fmt.Printf("The transition «%s» -> «%s». Chain:%s\n", word, word_1, chain)
+	} else if len(word) < len(word_1) {
+		chain, _ := BuildTreeBFS(word_1, word, srs_1)
+		fmt.Printf("The transition «%s» -> «%s». Chain:%s\n", word_1, word, chain)
+
+	}
+}
+
+func BuildTreeBFS(wordStart, wordFinish string, srs_1 []RewritingRule) ([]string, string) {
+	q := InitQueue()
+	rootTree := &Vertex{
+		word:   wordStart,
+		parent: nil,
+		way:    nil,
+	}
+
+	visited := make(map[string]bool)
+	visited[wordStart] = true
+
+	q.Enqueue(rootTree)
+	for q.count > 0 {
+		currentVertex := q.Dequeue()
+		if currentVertex.word == wordFinish {
+			return currentVertex.way, currentVertex.word
+		}
+
+		newWords := AllVariants(currentVertex.word, srs_1)
+		fmt.Print(currentVertex.word)
+		fmt.Print(newWords)
+		fmt.Print("\n")
+
+		for _, newWord := range newWords {
+			if visited[newWord] || len(newWord) < len(wordFinish) {
+				continue
+			}
+
+			newWay := append(currentVertex.way, currentVertex.word)
+			w := &Vertex{
+				word:   newWord,
+				parent: currentVertex,
+				way:    newWay,
+			}
+			visited[newWord] = true
+			q.Enqueue(w)
+		}
+	}
+	return nil, ""
+}
+
+func AllVariants(wordStart string, srs_1 []RewritingRule) []string {
+	var newStrings []string
+	for _, rule := range srs_1 {
+		ruleEntry := CountAllEntry(wordStart, rule.left)
+		//fmt.Printf("%d %s\n", ruleEntry, rule.left)
+		if len(ruleEntry) > 0 {
+			for j := 0; j < len(ruleEntry); j++ {
+				newStrings = append(newStrings, ReplaceFromIndex(wordStart, rule.left, rule.right, ruleEntry[j]))
+			}
+		}
+	}
+	return newStrings
 }
 
 func CheckEqualance(word, word_1 string, srs_1 []RewritingRule) {
@@ -106,6 +218,9 @@ func CheckEqualance(word, word_1 string, srs_1 []RewritingRule) {
 
 func main() {
 	s := GenerateWords()
-	_, w := GenerateChain(s, T)
-	CheckEqualance(s, w, T_1)
+	fmt.Print(s + "\n")
+	chain, w := GenerateChain(s, T)
+	fmt.Print(chain)
+	fmt.Print("\n" + w + "\n")
+	WordToWord(w, s, T_1)
 }
